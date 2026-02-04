@@ -1,0 +1,141 @@
+{
+  "name": "Steam Tag Mixer - Daily Game Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "매일 아침 9시",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Steam 태그 목록에서 랜덤으로 N개 선택 (N = 2~5)\nconst steamTags = [\n  'Action', 'Adventure', 'Casual', 'Indie', 'RPG', 'Strategy', 'Simulation',\n  'Shooter', 'Multiplayer', 'Puzzle', 'Singleplayer', 'Platformer',\n  'Action-Adventure', 'Turn-Based', 'Survival', 'Anime', 'Sports', 'Racing',\n  'Fighting', 'Relaxing', 'Cute', 'Horror', 'Visual Novel', 'Dungeon Crawler',\n  'Open World', 'Sandbox', '3D', '2D', 'Pixel Graphics', 'Top-Down',\n  'First-Person', 'Side Scroller', 'Third Person', 'Isometric', 'Retro',\n  'Atmospheric', 'Comedy', 'Dark', 'Colorful', 'Story Rich', 'Dark Fantasy',\n  'Fantasy', 'Sci-fi', 'Cyberpunk', 'Steampunk', 'Medieval', 'Zombies',\n  'Space', 'Pirates', 'Tactical', 'Turn-Based Strategy', 'Real-Time Strategy',\n  'Tower Defense', 'Card Game', 'Deckbuilding', 'Auto Battler', 'Roguelike',\n  'Roguelite', 'Metroidvania', 'Management', 'Building', 'Base Building',\n  'City Builder', 'Colony Sim', 'Farming Sim', 'Cooking', 'Crafting',\n  'Mining', 'Exploration', 'Stealth', 'Hack and Slash', 'Bullet Hell',\n  'Rhythm', 'Music', 'Arcade', 'Physics', 'Destruction',\n  'Time Manipulation', 'Loot', 'Economy', 'Trading', 'Resource Management',\n  'Idler', 'Clicker', 'Automation', 'Point & Click', 'Dialogue',\n  'Choices Matter', 'Multiple Endings', 'Mystery', 'Detective',\n  'Survival Horror', 'Psychological Horror', 'Difficult',\n  'Precision Platformer', 'Soulslike', 'Boss Rush', 'Co-op',\n  'PvP', 'PvE', 'Arena Shooter', 'FPS', 'Driving', 'Mechs', 'Robots',\n  'War', 'Post-apocalyptic', 'Nature', 'Underwater', 'Lovecraftian',\n  'Mythology', 'Abstract', 'Minimalist', 'Hand-Drawn', 'Cartoon', 'Voxel',\n  'Procedural Generation', 'Word Game', 'Board Game', 'Trivia', 'Party Game',\n  'Narration', 'Text-Based', 'Choose Your Own Adventure', 'Creature Collector',\n  'Pets', 'Dragons', 'Vampire', 'Magic', 'Ninja', 'Martial Arts',\n  'Parkour', 'Score Attack', 'Flight', 'Fishing', 'Photography',\n  'Hacking', 'Heist', 'Trains', 'Cats', 'Dogs', 'Dinosaurs',\n  'Action Roguelike', 'JRPG', 'Action RPG', 'Tactical RPG',\n  'Futuristic', 'Western', 'Historical', 'Gothic', 'Immersive Sim',\n  'Walking Simulator', 'Drawing', 'Escape Room', 'Extraction Shooter', 'Survivors'\n];\n\n// N = 랜덤 2~5\nconst n = Math.floor(Math.random() * 4) + 2;\n\n// Fisher-Yates 셔플로 중복 없이 선택\nconst shuffled = [...steamTags];\nfor (let i = shuffled.length - 1; i > 0; i--) {\n  const j = Math.floor(Math.random() * (i + 1));\n  [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];\n}\n\nconst selectedTags = shuffled.slice(0, n);\n\nreturn {\n  json: {\n    tagCount: n,\n    tags: selectedTags,\n    date: new Date().toISOString().split('T')[0],\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "select-tags",
+      "name": "태그 랜덤 선택",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.WEBHOOK_URL || 'http://localhost:3847' }}/webhook/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.WEBHOOK_SECRET || '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "tags",
+              "value": "={{ $json.tags }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "trigger-pipeline",
+      "name": "Webhook으로 파이프라인 실행",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-success",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 202,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-response",
+      "name": "응답 확인",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 성공 로그\nconst input = $input.first().json;\nreturn {\n  json: {\n    status: 'success',\n    message: `파이프라인이 시작되었습니다. 태그: ${JSON.stringify(input.tags || 'random')}`,\n    date: new Date().toISOString()\n  }\n};"
+      },
+      "id": "log-success",
+      "name": "성공 로그",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 실패 로그\nconst input = $input.first().json;\nreturn {\n  json: {\n    status: 'failed',\n    message: `파이프라인 트리거 실패`,\n    error: JSON.stringify(input),\n    date: new Date().toISOString()\n  }\n};"
+      },
+      "id": "log-failure",
+      "name": "실패 로그",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 400]
+    }
+  ],
+  "connections": {
+    "매일 아침 9시": {
+      "main": [
+        [{ "node": "태그 랜덤 선택", "type": "main", "index": 0 }]
+      ]
+    },
+    "태그 랜덤 선택": {
+      "main": [
+        [{ "node": "Webhook으로 파이프라인 실행", "type": "main", "index": 0 }]
+      ]
+    },
+    "Webhook으로 파이프라인 실행": {
+      "main": [
+        [{ "node": "응답 확인", "type": "main", "index": 0 }]
+      ]
+    },
+    "응답 확인": {
+      "main": [
+        [{ "node": "성공 로그", "type": "main", "index": 0 }],
+        [{ "node": "실패 로그", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "매일 아침 9시에 Steam 태그를 랜덤 선택하여 로컬 webhook 서버로 전달, Claude Code 기반 웹 게임 프로토타입 자동 생성 파이프라인을 트리거합니다.",
+    "templateCredsSetupCompleted": false
+  }
+}

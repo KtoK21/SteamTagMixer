@@ -1,0 +1,22 @@
+{
+  "name": "steam-tag-mixer",
+  "version": "0.1.0",
+  "description": "Steam 태그 기반 자동 웹 게임 프로토타입 생성 파이프라인",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "pipeline": "tsx src/pipeline.ts",
+    "select-tags": "tsx src/tags.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
