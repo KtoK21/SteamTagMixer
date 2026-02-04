@@ -1,0 +1,21 @@
+{
+  "_comment": "[.gemini/settings.json] Gemini CLI 도구 설정, 샌드박스 모드, 디렉토리 접근 범위 정의",
+  "contextFileName": "GEMINI.md",
+  "sandbox": true,
+  "autoAccept": true,
+  "coreTools": [
+    "read",
+    "write",
+    "edit",
+    "shell",
+    "glob",
+    "grep",
+    "web_search",
+    "web_fetch"
+  ],
+  "excludeTools": [],
+  "includeDirectories": [
+    "./"
+  ],
+  "usageStatisticsEnabled": false
+}

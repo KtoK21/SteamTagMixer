@@ -1,0 +1,13 @@
+{
+  "_comment": "[.mcp.json] MCP(Model Context Protocol) 서버 연결 설정 - Figma, Atlassian 등 외부 서비스 연동",
+  "mcpServers": {
+    "figma": {
+      "type": "http",
+      "url": "https://mcp.figma.com/mcp"
+    },
+    "atlassian": {
+      "type": "http",
+      "url": "https://mcp.atlassian.com/v1/mcp"
+    }
+  }
+}
